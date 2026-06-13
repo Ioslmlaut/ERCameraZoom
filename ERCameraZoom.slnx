@@ -1,0 +1,7 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="ERCameraZoom/ERCameraZoom.vcxproj" Id="edb3728d-6c9f-4472-80e8-62448b7337a5" />
+</Solution>
