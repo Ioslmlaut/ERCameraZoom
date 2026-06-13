@@ -13,6 +13,7 @@ public:
     float maxDistance = 30.0f;
     float smoothFactor = 0.08f;
     int   invertScroll = 0;
+    int   debugLog     = 0;
 
     void Load()
     {
@@ -34,6 +35,7 @@ public:
             else if (key == "max")             TryParseFloat(value, maxDistance);
             else if (key == "smooth_factor")   TryParseFloat(value, smoothFactor);
             else if (key == "invert_scroll")   TryParseInt(value, invertScroll);
+            else if (key == "debug_log")       TryParseInt(value, debugLog);
         }
         Clamp(cameraDistance, 1.0f, 200.0f);
         Clamp(step, 0.1f, 10.0f);
@@ -41,6 +43,7 @@ public:
         Clamp(maxDistance, 5.0f, 200.0f);
         Clamp(smoothFactor, 0.01f, 1.0f);
         if (invertScroll != 0) invertScroll = 1;
+        if (debugLog != 0)     debugLog = 1;
     }
 
     void Save()
@@ -58,13 +61,15 @@ public:
             << "; min / max        - clamp range\n"
             << "; smooth_factor    - easing speed (0.01=very slow, 1.0=instant)\n"
             << "; invert_scroll    - 0 = scroll up zooms in, 1 = scroll up zooms out\n"
+            << "; debug_log        - 0 = no log (default), 1 = write ERCameraZoom.log\n"
             << ";\n"
             << "camera_distance = " << cameraDistance << "\n"
             << "step            = " << step << "\n"
             << "min             = " << minDistance << "\n"
             << "max             = " << maxDistance << "\n"
             << "smooth_factor   = " << smoothFactor << "\n"
-            << "invert_scroll   = " << invertScroll << "\n";
+            << "invert_scroll   = " << invertScroll << "\n"
+            << "debug_log       = " << debugLog << "\n";
     }
 
     std::string GetConfigPath()

@@ -1,5 +1,5 @@
 /*
- * Elden Ring Camera Distance Mod  (v4)
+ * Elden Ring Camera Zoom Mod
  * Controls: Alt + ScrollUp = zoom in, Alt + ScrollDown = zoom out
  *           (configurable via invert_scroll in config.ini)
  *
@@ -34,11 +34,14 @@
 #include <cstring>
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  Logging
+//  Logging — disabled by default, enable via config.ini: debug_log = 1
 // ─────────────────────────────────────────────────────────────────────────────
 static FILE* g_logFile = nullptr;
+static bool g_logging = false;
+
 static void Log(const char* fmt, ...)
 {
+    if (!g_logging) return;
     char buf[512];
     va_list args;
     va_start(args, fmt);
@@ -49,6 +52,7 @@ static void Log(const char* fmt, ...)
 }
 static void OpenLog(const std::string& dir)
 {
+    if (!g_logging) return;
     fopen_s(&g_logFile, (dir + "ERCameraZoom.log").c_str(), "w");
 }
 
@@ -73,8 +77,8 @@ static uint32_t           g_lockCamRows    = 0;
 static std::atomic<float> g_distance       { 8.0f };  // target (set by user input)
 static float              g_smoothedDist   = 8.0f;    // current eased value (C++ only)
 static float              g_minDist        = 1.0f;
-static float              g_maxDist        = 30.0f;
-static float              g_step           = 0.5f;
+static float              g_maxDist        = 1000.0f;
+static float              g_step           = 1.0f;
 static float              g_smoothFactor   = 0.08f;
 static bool               g_invertScroll   = false;
 static std::atomic<bool>  g_running        { true };
@@ -393,9 +397,11 @@ static void ModMain()
     Sleep(5000);
 
     std::string dir = GetDllDir(g_hModule);
-    OpenLog(dir);
 
     g_cfg.Load();
+    g_logging = (g_cfg.debugLog != 0);
+    OpenLog(dir);
+
     g_distance.store(g_cfg.cameraDistance);
     g_smoothedDist = g_cfg.cameraDistance;  // start at target — no startup lerp
     g_step         = g_cfg.step;
