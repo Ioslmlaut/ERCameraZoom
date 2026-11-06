@@ -8,8 +8,8 @@ Lets you control the camera zoom distance in Elden Ring using your scroll wheel
 
 - [Elden Ring Mod Loader](https://www.nexusmods.com/eldenring/mods/117) by techiew
 - or [Mod Engine 2](https://github.com/soulsmods/ModEngine2/releases) by katalash
-- Elden Ring version **1.16.1**
-- Windows 11
+- Elden Ring version **1.17.2**
+- Windows 11/Linux
 - Mouse (no controller support)
 
 ---
@@ -50,3 +50,12 @@ invert_scroll   = 0    ; set to 1 to flip scroll direction
 - Safe for offline play. Use online at your own risk
 - If it doesn't work for you, the repo is public, feel free to dig in and fix it yourself. I'm barely a C++ dev myself, I'm not in a position to provide support
 - ~95% of this mod was vibe coded with Claude in a week with the help of the Hexinton cheat sheet :)
+
+
+## Compiling on linux/ubuntu
+```bash
+git clone ...
+sudo apt install clang lld
+make
+```
+ERCameraZoom.dll will be in directory `dist`

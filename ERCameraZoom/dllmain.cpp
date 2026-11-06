@@ -116,27 +116,39 @@ static constexpr size_t CAVE_BACK_SLOT = 0x38;
 static constexpr size_t CAVE_RBX_SLOT  = 0x40;
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  Safe memory helpers
+//  Safe memory helpers (MinGW/Clang compatible via ReadProcessMemory)
 // ─────────────────────────────────────────────────────────────────────────────
 static bool SafeReadPtr(uintptr_t addr, uintptr_t& out)
 {
-    __try { out = *reinterpret_cast<uintptr_t*>(addr); return true; }
-    __except (EXCEPTION_EXECUTE_HANDLER) { return false; }
+    if (!addr) return false;
+    SIZE_T read = 0;
+    return ReadProcessMemory(GetCurrentProcess(), reinterpret_cast<const void*>(addr), &out, sizeof(out), &read) && read == sizeof(out);
 }
+
 static bool SafeReadInt32(uintptr_t addr, int32_t& out)
 {
-    __try { out = *reinterpret_cast<int32_t*>(addr); return true; }
-    __except (EXCEPTION_EXECUTE_HANDLER) { return false; }
+    if (!addr) return false;
+    SIZE_T read = 0;
+    return ReadProcessMemory(GetCurrentProcess(), reinterpret_cast<const void*>(addr), &out, sizeof(out), &read) && read == sizeof(out);
 }
+
 static bool SafeReadU16(uintptr_t addr, uint16_t& out)
 {
-    __try { out = *reinterpret_cast<uint16_t*>(addr); return true; }
-    __except (EXCEPTION_EXECUTE_HANDLER) { return false; }
+    if (!addr) return false;
+    SIZE_T read = 0;
+    return ReadProcessMemory(GetCurrentProcess(), reinterpret_cast<const void*>(addr), &out, sizeof(out), &read) && read == sizeof(out);
 }
+
 static bool SafeWriteFloat(float* ptr, float val)
 {
-    __try { *ptr = val; return true; }
-    __except (EXCEPTION_EXECUTE_HANDLER) { return false; }
+    if (!ptr) return false;
+    DWORD oldProt;
+    if (VirtualProtect(ptr, sizeof(float), PAGE_EXECUTE_READWRITE, &oldProt)) {
+        *ptr = val;
+        VirtualProtect(ptr, sizeof(float), oldProt, &oldProt);
+        return true;
+    }
+    return false;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -144,19 +156,22 @@ static bool SafeWriteFloat(float* ptr, float val)
 // ─────────────────────────────────────────────────────────────────────────────
 static bool ReadParamName(uintptr_t hdr, char* out, int len)
 {
-    __try {
-        if (!*reinterpret_cast<uint32_t*>(hdr + 0x28)) return false;
-        uintptr_t ptr = *reinterpret_cast<uintptr_t*>(hdr + 0x18);
-        if (!ptr) return false;
-        int n = 0;
-        for (int i = 0; i < len - 1; ++i) {
-            wchar_t wc = *reinterpret_cast<wchar_t*>(ptr + i * 2);
-            if (!wc) break;
-            out[n++] = (char)(wc & 0xFF);
+    uint32_t flag = 0;
+    if (!SafeReadInt32(hdr + 0x28, reinterpret_cast<int32_t&>(flag)) || !flag) return false;
+    
+    uintptr_t ptr = 0;
+    if (!SafeReadPtr(hdr + 0x18, ptr) || !ptr) return false;
+
+    int n = 0;
+    for (int i = 0; i < len - 1; ++i) {
+        wchar_t wc = 0;
+        if (!ReadProcessMemory(GetCurrentProcess(), reinterpret_cast<const void*>(ptr + i * 2), &wc, sizeof(wc), nullptr) || !wc) {
+            break;
         }
-        out[n] = 0;
-        return n > 0;
-    } __except (EXCEPTION_EXECUTE_HANDLER) { return false; }
+        out[n++] = static_cast<char>(wc & 0xFF);
+    }
+    out[n] = 0;
+    return n > 0;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -169,7 +184,6 @@ static bool FindParamTableBase(uintptr_t regMgr, const char* name, uintptr_t& ba
     if (!SafeReadPtr(regMgr + 0x20, le) || !le) return false;
     uintptr_t n = (le - ls) / 8;
     if (!n || n > 2000) return false;
-
     for (uintptr_t i = 0; i < n; ++i) {
         uintptr_t hdr = 0;
         if (!SafeReadPtr(ls + i * 8, hdr) || !hdr) continue;
